@@ -1,0 +1,27 @@
+.app {
+  font-family: system-ui, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f5f8ff;
+  margin: 0;
+}
+
+.app-header {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  max-width: 480px;
+  width: 100%;
+}
+
+input {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  font-size: 1rem;
+  border: 1px solid #d3d8e0;
+  border-radius: 0.75rem;
+}

@@ -24,9 +24,10 @@ public class DataInitializer {
             if (stationRepository.count() == 0) {
                 stationRepository.saveAll(List.of(
                         new Station("CF", "Colombo Fort", 0),
-                        new Station("KDY", "Kandy", 1),
-                        new Station("NP", "Nuwara Eliya (Nanu Oya)", 2),
-                        new Station("BDL", "Badulla", 3)
+                        new Station("GAM", "Gampaha", 1),
+                        new Station("KDY", "Kandy", 2),
+                        new Station("NP", "Nuwara Eliya (Nanu Oya)", 3),
+                        new Station("BDL", "Badulla", 4)
                 ));
             }
 

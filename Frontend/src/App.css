@@ -1,27 +1,153 @@
 .app {
-  font-family: system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #f5f8ff;
+  background: #f1f5ff;
   margin: 0;
-}
-
-.app-header {
-  background: white;
   padding: 2rem;
-  border-radius: 1rem;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
-  max-width: 480px;
-  width: 100%;
 }
 
+.container {
+  width: min(1080px, 100%);
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.08);
+  padding: 2rem;
+}
+
+.header {
+  margin-bottom: 1.75rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 2.8vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+.header p {
+  margin: 0.75rem 0 0;
+  color: #475569;
+}
+
+.route-form,
+.book-form,
+.availability {
+  margin-top: 1.75rem;
+}
+
+.route-form {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+label {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+select,
 input {
-  margin-top: 0.75rem;
-  padding: 0.75rem 1rem;
   width: 100%;
-  font-size: 1rem;
-  border: 1px solid #d3d8e0;
-  border-radius: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.95rem;
+}
+
+button.primary {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.95rem 1.25rem;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+button.primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+button.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #4338ca;
+}
+
+.alert {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.alert.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.seat-grid {
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.seat-card {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 18px;
+  padding: 1rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.seat-card:hover {
+  transform: translateY(-1px);
+  border-color: #4f46e5;
+}
+
+.seat-card.selected {
+  border-color: #4f46e5;
+  background: #eef2ff;
+}
+
+.seat-label {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.coach-code,
+.seat-type {
+  display: block;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.book-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.book-form input {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 840px) {
+  .route-form {
+    grid-template-columns: 1fr;
+  }
 }

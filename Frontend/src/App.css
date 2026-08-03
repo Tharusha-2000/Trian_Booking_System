@@ -34,14 +34,55 @@
 
 .route-form,
 .book-form,
-.availability {
+.availability,
+.train-details {
   margin-top: 1.75rem;
+}
+
+.train-details {
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 1.25rem 1.5rem;
+  background: #fbfcff;
+}
+
+.train-badge {
+  display: inline-block;
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 700;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.schedule-table th,
+.schedule-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.schedule-table th {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.schedule-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .route-form {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem 1.25rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: end;
 }
 
@@ -64,6 +105,15 @@ input {
   font-size: 0.95rem;
   background: white;
   color: #0f172a;
+}
+
+input[type='date'] {
+  padding-right: 0.75rem;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  margin-left: 0.5rem;
+  cursor: pointer;
 }
 
 select {
@@ -232,5 +282,10 @@ button.primary:hover:not(:disabled) {
 @media (max-width: 840px) {
   .route-form {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .route-form button.primary {
+    margin-top: 0.5rem;
   }
 }

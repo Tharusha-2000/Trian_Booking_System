@@ -8,6 +8,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "seat_bookings")
 public class SeatBooking {
@@ -27,16 +29,18 @@ public class SeatBooking {
     @JoinColumn(name = "destination_station_id")
     private Station destination;
 
+    private LocalDate travelDate;
     private String passengerName;
     private long fare;
 
     public SeatBooking() {
     }
 
-    public SeatBooking(Seat seat, Station origin, Station destination, String passengerName, long fare) {
+    public SeatBooking(Seat seat, Station origin, Station destination, LocalDate travelDate, String passengerName, long fare) {
         this.seat = seat;
         this.origin = origin;
         this.destination = destination;
+        this.travelDate = travelDate;
         this.passengerName = passengerName;
         this.fare = fare;
     }
@@ -67,6 +71,14 @@ public class SeatBooking {
 
     public void setDestination(Station destination) {
         this.destination = destination;
+    }
+
+    public LocalDate getTravelDate() {
+        return travelDate;
+    }
+
+    public void setTravelDate(LocalDate travelDate) {
+        this.travelDate = travelDate;
     }
 
     public String getPassengerName() {

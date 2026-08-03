@@ -3,10 +3,28 @@ import './App.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8090/api';
 
+const todayIsoDate = () => {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const formatTime = (hhmm) => {
+  if (!hhmm) return '';
+  const [h, m] = hhmm.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+};
+
 function App() {
   const [stations, setStations] = useState([]);
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
+  const [travelDate, setTravelDate] = useState(todayIsoDate());
+  const [trainSchedule, setTrainSchedule] = useState(null);
   const [availableSeats, setAvailableSeats] = useState([]);
   const [selectedSeatIds, setSelectedSeatIds] = useState([]);
   const [passengerName, setPassengerName] = useState('');
@@ -36,11 +54,30 @@ function App() {
     };
 
     loadStations();
+
+    const loadTrainSchedule = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/train-schedule`);
+        if (!response.ok) {
+          throw new Error('Train schedule fetch failed');
+        }
+        const data = await response.json();
+        setTrainSchedule(data);
+      } catch (error) {
+        console.error('Train schedule fetch error:', error);
+      }
+    };
+
+    loadTrainSchedule();
   }, []);
 
   const fetchAvailability = async () => {
     if (!origin || !destination || origin === destination) {
       setMessage('Choose a valid origin and destination.');
+      return;
+    }
+    if (!travelDate) {
+      setMessage('Choose a travel date.');
       return;
     }
 
@@ -52,7 +89,7 @@ function App() {
 
     try {
       const response = await fetch(
-        `${API_BASE}/availability?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`
+        `${API_BASE}/availability?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&date=${encodeURIComponent(travelDate)}`
       );
       if (!response.ok) {
         const errorText = await response.text();
@@ -65,7 +102,7 @@ function App() {
       }
     } catch (error) {
       console.error('Availability fetch error:', error);
-      setFetchError('Unable to load seats.');
+      setFetchError(error.message || 'Unable to load seats.');
     } finally {
       setLoading(false);
     }
@@ -92,6 +129,7 @@ function App() {
           seatIds: selectedSeatIds,
           originCode: origin,
           destinationCode: destination,
+          travelDate,
           passengerName,
         }),
       });
@@ -147,6 +185,28 @@ function App() {
           <p>Reserve one seat per segment on the Colombo Fort → Badulla route.</p>
         </header>
 
+        {trainSchedule && (
+          <section className="train-details">
+            <div className="train-badge">{trainSchedule.trainName}</div>
+            <table className="schedule-table">
+              <thead>
+                <tr>
+                  <th>Station</th>
+                  <th>Approx. Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trainSchedule.stops.map((stop) => (
+                  <tr key={stop.stationCode}>
+                    <td>{stop.stationName}</td>
+                    <td>{formatTime(stop.approximateTime)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+
         <section className="route-form">
           <div className="field">
             <label>Origin</label>
@@ -174,6 +234,16 @@ function App() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="field">
+            <label>Travel Date</label>
+            <input
+              type="date"
+              value={travelDate}
+              min={todayIsoDate()}
+              onChange={(e) => setTravelDate(e.target.value)}
+            />
           </div>
 
           <button type="button" className="primary" onClick={fetchAvailability} disabled={loading}>

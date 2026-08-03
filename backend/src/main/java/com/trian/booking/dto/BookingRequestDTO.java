@@ -1,11 +1,13 @@
 package com.trian.booking.dto;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public class BookingRequestDTO {
     private List<Long> seatIds;
     private String originCode;
     private String destinationCode;
+    private LocalDate travelDate;
     private String passengerName;
 
     public BookingRequestDTO() {
@@ -17,6 +19,14 @@ public class BookingRequestDTO {
 
     public void setSeatIds(List<Long> seatIds) {
         this.seatIds = seatIds;
+    }
+
+    public LocalDate getTravelDate() {
+        return travelDate;
+    }
+
+    public void setTravelDate(LocalDate travelDate) {
+        this.travelDate = travelDate;
     }
 
     public String getOriginCode() {

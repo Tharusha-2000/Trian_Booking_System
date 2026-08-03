@@ -2,6 +2,7 @@
 target/
 
 src/main/resources/application.properties
+src/main/java/com/trian/booking/config/DataInitializer.java
 
 # Eclipse
 .settings/

@@ -1,7 +1,9 @@
 package com.trian.booking.dto;
 
+import java.util.List;
+
 public class BookingRequestDTO {
-    private Long seatId;
+    private List<Long> seatIds;
     private String originCode;
     private String destinationCode;
     private String passengerName;
@@ -9,12 +11,12 @@ public class BookingRequestDTO {
     public BookingRequestDTO() {
     }
 
-    public Long getSeatId() {
-        return seatId;
+    public List<Long> getSeatIds() {
+        return seatIds;
     }
 
-    public void setSeatId(Long seatId) {
-        this.seatId = seatId;
+    public void setSeatIds(List<Long> seatIds) {
+        this.seatIds = seatIds;
     }
 
     public String getOriginCode() {

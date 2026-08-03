@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -65,26 +66,33 @@ public class BookingService {
         }
 
         List<Seat> allSeats = seatRepository.findByCoach_ReservedTrue();
-        List<SeatAvailabilityResponseDTO> availableSeats = new ArrayList<>();
+        List<SeatAvailabilityResponseDTO> seatMap = new ArrayList<>();
 
         for (Seat seat : allSeats) {
             List<SeatBooking> overlapping = seatBookingRepository.findOverlappingBookings(seat, originOrdinal, destinationOrdinal);
-            if (overlapping.isEmpty()) {
-                availableSeats.add(new SeatAvailabilityResponseDTO(
-                        seat.getId(),
-                        seat.getCoach().getCode(),
-                        seat.getSeatNumber(),
-                        seat.getCoach().isReserved()));
-            }
+            seatMap.add(new SeatAvailabilityResponseDTO(
+                    seat.getId(),
+                    seat.getCoach().getCode(),
+                    seat.getSeatNumber(),
+                    seat.getCoach().isReserved(),
+                    overlapping.isEmpty()));
         }
 
-        return availableSeats;
+        return seatMap;
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public SeatBooking createBooking(BookingRequestDTO request) {
-        Seat seat = seatRepository.findById(request.getSeatId())
-                .orElseThrow(() -> new IllegalArgumentException("Seat not found"));
+    public List<SeatBooking> createBooking(BookingRequestDTO request) {
+        List<Long> seatIds = request.getSeatIds();
+        if (seatIds == null || seatIds.isEmpty()) {
+            throw new IllegalArgumentException("At least one seat must be selected");
+        }
+        if (seatIds.contains(null)) {
+            throw new IllegalArgumentException("Seat selection contains an invalid seat id");
+        }
+        if (new HashSet<>(seatIds).size() != seatIds.size()) {
+            throw new IllegalArgumentException("Duplicate seat in selection");
+        }
 
         Station origin = stationRepository.findByCode(request.getOriginCode())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid origin"));
@@ -95,14 +103,22 @@ public class BookingService {
             throw new IllegalArgumentException("Origin must come before destination");
         }
 
-        List<SeatBooking> overlapping = seatBookingRepository.findOverlappingBookings(seat, origin.getOrdinal(), destination.getOrdinal());
-        if (!overlapping.isEmpty()) {
-            throw new IllegalStateException("Seat is not available for the selected leg");
+     
+        List<SeatBooking> bookings = new ArrayList<>();
+        for (Long seatId : seatIds) {
+            Seat seat = seatRepository.findById(seatId)
+                    .orElseThrow(() -> new IllegalArgumentException("Seat not found: " + seatId));
+
+            List<SeatBooking> overlapping = seatBookingRepository.findOverlappingBookings(seat, origin.getOrdinal(), destination.getOrdinal());
+            if (!overlapping.isEmpty()) {
+                throw new IllegalStateException("Seat " + seat.getSeatNumber() + " is not available for the selected leg");
+            }
+
+            long fare = calculateFare(seat.getCoach(), origin.getOrdinal(), destination.getOrdinal());
+            bookings.add(new SeatBooking(seat, origin, destination, request.getPassengerName(), fare));
         }
 
-        long fare = calculateFare(seat.getCoach(), origin.getOrdinal(), destination.getOrdinal());
-        SeatBooking booking = new SeatBooking(seat, origin, destination, request.getPassengerName(), fare);
-        return seatBookingRepository.save(booking);
+        return seatBookingRepository.saveAll(bookings);
     }
 
     private long calculateFare(Coach coach, int originOrdinal, int destinationOrdinal) {

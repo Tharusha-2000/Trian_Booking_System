@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8090/api';
 
 function App() {
   const [stations, setStations] = useState([]);
@@ -15,16 +15,27 @@ function App() {
   const [fetchError, setFetchError] = useState('');
 
   useEffect(() => {
-    fetch(`${API_BASE}/stations`)
-      .then((res) => res.json())
-      .then((data) => {
+    const loadStations = async () => {
+      try {
+        
+        const response = await fetch(`${API_BASE}/stations`);
+        
+        if (!response.ok) {
+          throw new Error('Station fetch failed');
+        }
+        const data = await response.json();
         setStations(data);
         if (data.length >= 2) {
           setOrigin(data[0].code);
           setDestination(data[1].code);
         }
-      })
-      .catch(() => setFetchError('Unable to load stations.'));
+      } catch (error) {
+        console.error('Station fetch error:', error);
+        setFetchError('Unable to load stations.');
+      }
+    };
+
+    loadStations();
   }, []);
 
   const fetchAvailability = async () => {
@@ -41,7 +52,7 @@ function App() {
 
     try {
       const response = await fetch(
-        `${API_BASE}/availability?origin=${origin}&destination=${destination}`
+        `${API_BASE}/availability?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`
       );
       if (!response.ok) {
         const errorText = await response.text();
@@ -53,6 +64,7 @@ function App() {
         setMessage('No seats available for this leg.');
       }
     } catch (error) {
+      console.error('Availability fetch error:', error);
       setFetchError('Unable to load seats.');
     } finally {
       setLoading(false);
@@ -85,7 +97,7 @@ function App() {
       });
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result || 'Booking failed');
+        throw new Error(result.message || 'Booking failed');
       }
 
       setMessage(
@@ -95,6 +107,7 @@ function App() {
       setSelectedSeatId(null);
       setPassengerName('');
     } catch (error) {
+      console.error('Booking error:', error);
       setMessage(error.message || 'Booking failed');
     } finally {
       setLoading(false);
@@ -112,7 +125,10 @@ function App() {
         <section className="route-form">
           <div className="field">
             <label>Origin</label>
-            <select value={origin} onChange={(e) => setOrigin(e.target.value)}>
+            <select value={origin || ''} onChange={(e) => setOrigin(e.target.value)}>
+              <option value="" disabled>
+                Select origin
+              </option>
               {stations.map((station) => (
                 <option key={station.id} value={station.code}>
                   {station.name}
@@ -120,9 +136,13 @@ function App() {
               ))}
             </select>
           </div>
+
           <div className="field">
             <label>Destination</label>
-            <select value={destination} onChange={(e) => setDestination(e.target.value)}>
+            <select value={destination || ''} onChange={(e) => setDestination(e.target.value)}>
+              <option value="" disabled>
+                Select destination
+              </option>
               {stations.map((station) => (
                 <option key={station.id} value={station.code}>
                   {station.name}
@@ -130,7 +150,8 @@ function App() {
               ))}
             </select>
           </div>
-          <button className="primary" onClick={fetchAvailability} disabled={loading}>
+
+          <button type="button" className="primary" onClick={fetchAvailability} disabled={loading}>
             {loading ? 'Loading...' : 'Check Availability'}
           </button>
         </section>
@@ -144,6 +165,7 @@ function App() {
             {availableSeats.map((seat) => (
               <button
                 key={seat.seatId}
+                type="button"
                 className={`seat-card ${selectedSeatId === seat.seatId ? 'selected' : ''}`}
                 onClick={() => setSelectedSeatId(seat.seatId)}
               >
@@ -163,7 +185,7 @@ function App() {
             onChange={(e) => setPassengerName(e.target.value)}
             placeholder="Enter passenger name"
           />
-          <button className="primary" onClick={handleBooking} disabled={loading || !selectedSeatId}>
+          <button type="button" className="primary" onClick={handleBooking} disabled={loading || !selectedSeatId}>
             {loading ? 'Booking...' : 'Book Seat'}
           </button>
         </section>

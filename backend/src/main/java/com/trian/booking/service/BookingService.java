@@ -10,6 +10,8 @@ import com.trian.booking.repository.CoachRepository;
 import com.trian.booking.repository.SeatBookingRepository;
 import com.trian.booking.repository.SeatRepository;
 import com.trian.booking.repository.StationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
+
+    private static final Logger log = LoggerFactory.getLogger(BookingService.class);
 
     private final StationRepository stationRepository;
     private final CoachRepository coachRepository;
@@ -52,11 +56,15 @@ public class BookingService {
 
         int originOrdinal = origin.getOrdinal();
         int destinationOrdinal = destination.getOrdinal();
+
+       
+        log.info("Origin: {}, Destination: {}, Origin Ordinal: {}, Destination Ordinal: {}", originCode, destinationCode, originOrdinal, destinationOrdinal);   
+
         if (originOrdinal >= destinationOrdinal) {
             throw new IllegalArgumentException("Origin must come before destination");
         }
 
-        List<Seat> allSeats = seatRepository.findAll();
+        List<Seat> allSeats = seatRepository.findByCoach_ReservedTrue();
         List<SeatAvailabilityResponseDTO> availableSeats = new ArrayList<>();
 
         for (Seat seat : allSeats) {

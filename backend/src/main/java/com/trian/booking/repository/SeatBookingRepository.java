@@ -19,6 +19,7 @@ public interface SeatBookingRepository extends JpaRepository<SeatBooking, Long> 
             @Param("originOrdinal") int originOrdinal,
             @Param("destinationOrdinal") int destinationOrdinal);
 
+   
     @Query("SELECT b FROM SeatBooking b WHERE b.seat = :seat ORDER BY b.origin.ordinal")
     List<SeatBooking> findBySeatOrderByOriginOrdinal(@Param("seat") Seat seat);
 }

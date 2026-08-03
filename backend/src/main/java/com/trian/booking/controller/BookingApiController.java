@@ -28,8 +28,8 @@ public class BookingApiController {
 
     @GetMapping("/availability")
     public List<SeatAvailabilityResponseDTO> getAvailableSeats(
-            @RequestParam String origin,
-            @RequestParam String destination) {
+            @RequestParam("origin") String origin,
+            @RequestParam("destination") String destination) {
         return bookingService.getAvailableSeats(origin, destination);
     }
 

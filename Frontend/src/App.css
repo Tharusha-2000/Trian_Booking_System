@@ -62,6 +62,16 @@ input {
   border-radius: 16px;
   border: 1px solid #cbd5e1;
   font-size: 0.95rem;
+  background: white;
+  color: #0f172a;
+}
+
+select {
+  appearance: menulist;
+  -webkit-appearance: menulist;
+  cursor: pointer;
+  z-index: 1;
+  position: relative;
 }
 
 button.primary {

@@ -12,9 +12,8 @@ pnpm-lock.yaml
 backend/target/
 *.log
 
-# Docker
-**/Dockerfile
-.dockerignore
+# Secrets
+.env
 
 # IDE
 .vscode/

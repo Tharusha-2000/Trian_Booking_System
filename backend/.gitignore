@@ -1,0 +1,32 @@
+# Maven
+target/
+
+src/main/resources/application.properties
+src/main/java/com/trian/booking/config/DataInitializer.java
+
+# Eclipse
+.settings/
+.project
+.classpath
+
+# IntelliJ
+*.iml
+.idea/
+out/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+
+# Build artifacts
+*.jar
+*.war
+
+# Spring Boot
+spring-boot-app/
+
+# Other
+*.class
+

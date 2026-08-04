@@ -3,6 +3,8 @@ package com.trian.booking.controller;
 import com.trian.booking.dto.BookingRequestDTO;
 import com.trian.booking.dto.SeatAvailabilityResponseDTO;
 import com.trian.booking.dto.TrainScheduleResponseDTO;
+import com.trian.booking.dto.WaitlistRequestDTO;
+import com.trian.booking.dto.WaitlistResponseDTO;
 import com.trian.booking.model.SeatBooking;
 import com.trian.booking.model.Station;
 import com.trian.booking.model.User;
@@ -19,6 +21,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 public class BookingApiController {
+
+    private static final int MAX_ATTEMPTS = 3;
 
     private final BookingService bookingService;
 
@@ -44,11 +48,9 @@ public class BookingApiController {
         return bookingService.getAvailableSeats(origin, destination, date);
     }
 
-    private static final int MAX_BOOKING_ATTEMPTS = 3;
-
     @PostMapping("/bookings")
     public ResponseEntity<?> createBooking(@RequestBody BookingRequestDTO request, @AuthenticationPrincipal User currentUser) {
-        for (int attempt = 1; attempt <= MAX_BOOKING_ATTEMPTS; attempt++) {
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 List<SeatBooking> bookings = bookingService.createBooking(request, currentUser);
                 return ResponseEntity.ok(bookings);
@@ -58,7 +60,7 @@ public class BookingApiController {
                 // transactional method. Retrying re-runs the whole transaction, since one
                 // of the racing bookings has by now committed and the overlap check will
                 // see it.
-                if (attempt == MAX_BOOKING_ATTEMPTS) {
+                if (attempt == MAX_ATTEMPTS) {
                     return ResponseEntity.status(409).body("Seat is being booked by someone else. Please try again.");
                 }
             }
@@ -72,8 +74,33 @@ public class BookingApiController {
     }
 
     @DeleteMapping("/bookings/{id}")
-    public ResponseEntity<Void> cancelBooking(@PathVariable Long id, @AuthenticationPrincipal User currentUser) {
-        bookingService.cancelBooking(id, currentUser);
+    public ResponseEntity<Void> cancelBooking(@PathVariable("id") Long id, @AuthenticationPrincipal User currentUser) {
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                bookingService.cancelBooking(id, currentUser);
+                return ResponseEntity.noContent().build();
+            } catch (ConcurrencyFailureException e) {
+                if (attempt == MAX_ATTEMPTS) {
+                    return ResponseEntity.status(409).body(null);
+                }
+            }
+        }
+        return ResponseEntity.status(409).build();
+    }
+
+    @PostMapping("/waitlist")
+    public WaitlistResponseDTO joinWaitlist(@RequestBody WaitlistRequestDTO request, @AuthenticationPrincipal User currentUser) {
+        return bookingService.joinWaitlist(request, currentUser);
+    }
+
+    @GetMapping("/my-waitlist")
+    public List<WaitlistResponseDTO> getMyWaitlist(@AuthenticationPrincipal User currentUser) {
+        return bookingService.getMyWaitlist(currentUser);
+    }
+
+    @DeleteMapping("/waitlist/{id}")
+    public ResponseEntity<Void> leaveWaitlist(@PathVariable("id") Long id, @AuthenticationPrincipal User currentUser) {
+        bookingService.leaveWaitlist(id, currentUser);
         return ResponseEntity.noContent().build();
     }
 }

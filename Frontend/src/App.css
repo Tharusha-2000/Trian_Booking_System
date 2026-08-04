@@ -37,8 +37,19 @@
 .availability,
 .train-details,
 .my-bookings,
+.admin-panel,
 .auth-panel {
   margin-top: 1.75rem;
+}
+
+.route-form,
+.book-form,
+.availability,
+.my-bookings {
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 1.25rem 1.5rem;
+  background: #fbfcff;
 }
 
 .auth-panel {
@@ -336,6 +347,67 @@ button.primary:hover:not(:disabled) {
 .coach-class {
   font-size: 0.85rem;
   color: #64748b;
+}
+
+.demand-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+}
+
+.demand-badge.busy {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.demand-badge.high {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 1.25rem 1.5rem;
+  background: #fbfcff;
+}
+
+.admin-totals {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.stat-tile {
+  flex: 1;
+  min-width: 160px;
+  background: #eef2ff;
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #4338ca;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+.admin-date-field {
+  max-width: 220px;
+  margin-bottom: 1.25rem;
 }
 
 .coach-body {

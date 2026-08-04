@@ -32,12 +32,44 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState('');
 
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem('authToken') || '');
+  const [currentUser, setCurrentUser] = useState(() => {
+    const stored = localStorage.getItem('currentUser');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [authMode, setAuthMode] = useState('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authMessage, setAuthMessage] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const [myBookings, setMyBookings] = useState([]);
+  const [myBookingsLoading, setMyBookingsLoading] = useState(false);
+
+  const authHeaders = (token) => ({ Authorization: `Bearer ${token}` });
+
+  const loadMyBookings = async (token) => {
+    setMyBookingsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/my-bookings`, { headers: authHeaders(token) });
+      if (!response.ok) {
+        throw new Error('Failed to load bookings');
+      }
+      const data = await response.json();
+      setMyBookings(data);
+    } catch (error) {
+      console.error('My bookings fetch error:', error);
+    } finally {
+      setMyBookingsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const loadStations = async () => {
       try {
-        
+
         const response = await fetch(`${API_BASE}/stations`);
-        
+
         if (!response.ok) {
           throw new Error('Station fetch failed');
         }
@@ -69,7 +101,86 @@ function App() {
     };
 
     loadTrainSchedule();
+
+    if (authToken) {
+      loadMyBookings(authToken);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleAuthSubmit = async () => {
+    if (!authEmail.trim() || !authPassword) {
+      setAuthMessage('Enter both email and password.');
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthMessage('');
+
+    try {
+      const response = await fetch(`${API_BASE}/auth/${authMode === 'login' ? 'login' : 'register'}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authEmail, password: authPassword }),
+      });
+
+      if (!response.ok) {
+        const raw = await response.text();
+        throw new Error(raw || 'Authentication failed');
+      }
+
+      const data = await response.json();
+      const user = { email: data.email, role: data.role };
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      setAuthToken(data.token);
+      setCurrentUser(user);
+      setAuthEmail('');
+      setAuthPassword('');
+      loadMyBookings(data.token);
+    } catch (error) {
+      console.error('Auth error:', error);
+      setAuthMessage(error.message || 'Authentication failed');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    setAuthToken('');
+    setCurrentUser(null);
+    setMyBookings([]);
+  };
+
+  const handleCancelBooking = async (booking) => {
+    try {
+      const response = await fetch(`${API_BASE}/bookings/${booking.id}`, {
+        method: 'DELETE',
+        headers: authHeaders(authToken),
+      });
+      if (!response.ok) {
+        const raw = await response.text();
+        throw new Error(raw || 'Cancel failed');
+      }
+      setMyBookings((bookings) => bookings.filter((b) => b.id !== booking.id));
+      setMessage(`Cancelled seat ${booking.seat.seatNumber} for ${booking.travelDate}.`);
+
+      // If the cancelled trip matches what's currently on screen, refresh the seat
+      // map so the now-freed seat shows as available immediately.
+      if (
+        booking.travelDate === travelDate &&
+        booking.origin.code === origin &&
+        booking.destination.code === destination
+      ) {
+        fetchAvailability();
+      }
+    } catch (error) {
+      console.error('Cancel booking error:', error);
+      setMessage(error.message || 'Failed to cancel booking.');
+    }
+  };
 
   const fetchAvailability = async () => {
     if (!origin || !destination || origin === destination) {
@@ -109,12 +220,12 @@ function App() {
   };
 
   const handleBooking = async () => {
-    if (selectedSeatIds.length === 0) {
-      setMessage('Select at least one seat first.');
+    if (!authToken) {
+      setMessage('Sign in to book a seat.');
       return;
     }
-    if (!passengerName.trim()) {
-      setMessage('Enter passenger name.');
+    if (selectedSeatIds.length === 0) {
+      setMessage('Select at least one seat first.');
       return;
     }
 
@@ -124,7 +235,7 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}/bookings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders(authToken) },
         body: JSON.stringify({
           seatIds: selectedSeatIds,
           originCode: origin,
@@ -164,6 +275,7 @@ function App() {
       );
       setSelectedSeatIds([]);
       setPassengerName('');
+      loadMyBookings(authToken);
     } catch (error) {
       console.error('Booking error:', error);
       setMessage(error.message || 'Booking failed');
@@ -185,163 +297,254 @@ function App() {
           <p>Reserve one seat per segment on the Colombo Fort → Badulla route.</p>
         </header>
 
-        {trainSchedule && (
-          <section className="train-details">
-            <div className="train-badge">{trainSchedule.trainName}</div>
-            <table className="schedule-table">
-              <thead>
-                <tr>
-                  <th>Station</th>
-                  <th>Approx. Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {trainSchedule.stops.map((stop) => (
-                  <tr key={stop.stationCode}>
-                    <td>{stop.stationName}</td>
-                    <td>{formatTime(stop.approximateTime)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {!currentUser ? (
+          <section className="auth-panel standalone">
+            <div className="auth-form">
+              <div className="auth-tabs">
+                <button
+                  type="button"
+                  className={authMode === 'login' ? 'tab active' : 'tab'}
+                  onClick={() => setAuthMode('login')}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  className={authMode === 'register' ? 'tab active' : 'tab'}
+                  onClick={() => setAuthMode('register')}
+                >
+                  Sign Up
+                </button>
+              </div>
+              <div className="auth-fields">
+                <input
+                  type="email"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="Email"
+                />
+                <input
+                  type="password"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="Password"
+                />
+                <button type="button" className="primary" onClick={handleAuthSubmit} disabled={authLoading}>
+                  {authLoading ? 'Please wait...' : authMode === 'login' ? 'Sign In' : 'Sign Up'}
+                </button>
+              </div>
+              {authMessage && <div className="alert error">{authMessage}</div>}
+            </div>
           </section>
-        )}
+        ) : (
+          <>
+            <section className="auth-panel">
+              <div className="auth-status">
+                <span>
+                  Signed in as <strong>{currentUser.email}</strong>
+                  {currentUser.role === 'ADMIN' && <span className="role-badge">Admin</span>}
+                </span>
+                <button type="button" className="secondary" onClick={handleLogout}>
+                  Log out
+                </button>
+              </div>
+            </section>
 
-        <section className="route-form">
-          <div className="field">
-            <label>Origin</label>
-            <select value={origin || ''} onChange={(e) => setOrigin(e.target.value)}>
-              <option value="" disabled>
-                Select origin
-              </option>
-              {stations.map((station) => (
-                <option key={station.id} value={station.code}>
-                  {station.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            {trainSchedule && (
+              <section className="train-details">
+                <div className="train-badge">{trainSchedule.trainName}</div>
+                <table className="schedule-table">
+                  <thead>
+                    <tr>
+                      <th>Station</th>
+                      <th>Approx. Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trainSchedule.stops.map((stop) => (
+                      <tr key={stop.stationCode}>
+                        <td>{stop.stationName}</td>
+                        <td>{formatTime(stop.approximateTime)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
 
-          <div className="field">
-            <label>Destination</label>
-            <select value={destination || ''} onChange={(e) => setDestination(e.target.value)}>
-              <option value="" disabled>
-                Select destination
-              </option>
-              {stations.map((station) => (
-                <option key={station.id} value={station.code}>
-                  {station.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <section className="route-form">
+              <div className="field">
+                <label>Origin</label>
+                <select value={origin || ''} onChange={(e) => setOrigin(e.target.value)}>
+                  <option value="" disabled>
+                    Select origin
+                  </option>
+                  {stations.map((station) => (
+                    <option key={station.id} value={station.code}>
+                      {station.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="field">
-            <label>Travel Date</label>
-            <input
-              type="date"
-              value={travelDate}
-              min={todayIsoDate()}
-              onChange={(e) => setTravelDate(e.target.value)}
-            />
-          </div>
+              <div className="field">
+                <label>Destination</label>
+                <select value={destination || ''} onChange={(e) => setDestination(e.target.value)}>
+                  <option value="" disabled>
+                    Select destination
+                  </option>
+                  {stations.map((station) => (
+                    <option key={station.id} value={station.code}>
+                      {station.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <button type="button" className="primary" onClick={fetchAvailability} disabled={loading}>
-            {loading ? 'Loading...' : 'Check Availability'}
-          </button>
-        </section>
+              <div className="field">
+                <label>Travel Date</label>
+                <input
+                  type="date"
+                  value={travelDate}
+                  min={todayIsoDate()}
+                  onChange={(e) => setTravelDate(e.target.value)}
+                />
+              </div>
 
-        {fetchError && <div className="alert error">{fetchError}</div>}
-        {message && <div className="alert">{message}</div>}
+              <button type="button" className="primary" onClick={fetchAvailability} disabled={loading}>
+                {loading ? 'Loading...' : 'Check Availability'}
+              </button>
+            </section>
 
-        <section className="availability">
-          <h2>Seat Map</h2>
+            {fetchError && <div className="alert error">{fetchError}</div>}
+            {message && <div className="alert">{message}</div>}
 
-          <div className="legend">
-            <span className="legend-item"><span className="swatch available" /> Available</span>
-            <span className="legend-item"><span className="swatch selected" /> Selected</span>
-            <span className="legend-item"><span className="swatch occupied" /> Booked for this leg</span>
-          </div>
+            <section className="availability">
+              <h2>Seat Map</h2>
 
-          {availableSeats.length === 0 && !loading && (
-            <p className="hint">Choose a route and check availability to see the seat map.</p>
-          )}
+              <div className="legend">
+                <span className="legend-item"><span className="swatch available" /> Available</span>
+                <span className="legend-item"><span className="swatch selected" /> Selected</span>
+                <span className="legend-item"><span className="swatch occupied" /> Booked for this leg</span>
+              </div>
 
-          {Object.entries(coaches)
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([coachCode, seats]) => {
-              const sorted = [...seats].sort((a, b) =>
-                a.seatNumber.localeCompare(b.seatNumber, undefined, { numeric: true })
-              );
-              const rows = [];
-              for (let i = 0; i < sorted.length; i += 4) {
-                rows.push(sorted.slice(i, i + 4));
-              }
+              {availableSeats.length === 0 && !loading && (
+                <p className="hint">Choose a route and check availability to see the seat map.</p>
+              )}
 
-              return (
-                <div className="coach" key={coachCode}>
-                  <div className="coach-header">
-                    <span className="coach-name">Coach {coachCode}</span>
-                    <span className="coach-class">{sorted[0]?.reserved ? 'Reserved' : 'Unreserved'}</span>
-                  </div>
-                  <div className="coach-body">
-                    {rows.map((row, rowIndex) => (
-                      <div className="seat-row" key={rowIndex}>
-                        {row.map((seat, seatIndex) => (
-                          <Fragment key={seat.seatId}>
-                            <button
-                              type="button"
-                              className={`seat ${seat.available ? 'available' : 'occupied'} ${
-                                selectedSeatIds.includes(seat.seatId) ? 'selected' : ''
-                              }`}
-                              onClick={() => {
-                                if (!seat.available) {
-                                  setMessage(`Seat ${seat.seatNumber} is already booked for this leg — pick another seat.`);
-                                  return;
-                                }
-                                setSelectedSeatIds((ids) =>
-                                  ids.includes(seat.seatId)
-                                    ? ids.filter((id) => id !== seat.seatId)
-                                    : [...ids, seat.seatId]
-                                );
-                              }}
-                              title={seat.available ? 'Available' : 'Already booked for this leg'}
-                            >
-                              {seat.seatNumber.split('-')[1] || seat.seatNumber}
-                            </button>
-                            {seatIndex === 1 && <span className="aisle" />}
-                          </Fragment>
+              {Object.entries(coaches)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([coachCode, seats]) => {
+                  const sorted = [...seats].sort((a, b) =>
+                    a.seatNumber.localeCompare(b.seatNumber, undefined, { numeric: true })
+                  );
+                  const rows = [];
+                  for (let i = 0; i < sorted.length; i += 4) {
+                    rows.push(sorted.slice(i, i + 4));
+                  }
+
+                  return (
+                    <div className="coach" key={coachCode}>
+                      <div className="coach-header">
+                        <span className="coach-name">Coach {coachCode}</span>
+                        <span className="coach-class">{sorted[0]?.reserved ? 'Reserved' : 'Unreserved'}</span>
+                      </div>
+                      <div className="coach-body">
+                        {rows.map((row, rowIndex) => (
+                          <div className="seat-row" key={rowIndex}>
+                            {row.map((seat, seatIndex) => (
+                              <Fragment key={seat.seatId}>
+                                <button
+                                  type="button"
+                                  className={`seat ${seat.available ? 'available' : 'occupied'} ${
+                                    selectedSeatIds.includes(seat.seatId) ? 'selected' : ''
+                                  }`}
+                                  onClick={() => {
+                                    if (!seat.available) {
+                                      setMessage(`Seat ${seat.seatNumber} is already booked for this leg — pick another seat.`);
+                                      return;
+                                    }
+                                    setSelectedSeatIds((ids) =>
+                                      ids.includes(seat.seatId)
+                                        ? ids.filter((id) => id !== seat.seatId)
+                                        : [...ids, seat.seatId]
+                                    );
+                                  }}
+                                  title={seat.available ? 'Available' : 'Already booked for this leg'}
+                                >
+                                  {seat.seatNumber.split('-')[1] || seat.seatNumber}
+                                </button>
+                                {seatIndex === 1 && <span className="aisle" />}
+                              </Fragment>
+                            ))}
+                          </div>
                         ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-        </section>
+                    </div>
+                  );
+                })}
+            </section>
 
-        <section className="book-form">
-          <h2>Book Seats</h2>
-          <p className="hint">
-            {selectedSeatIds.length === 0
-              ? 'No seats selected yet.'
-              : `${selectedSeatIds.length} seat(s) selected.`}
-          </p>
-          <label>Passenger Name</label>
-          <input
-            value={passengerName}
-            onChange={(e) => setPassengerName(e.target.value)}
-            placeholder="Enter passenger name"
-          />
-          <button
-            type="button"
-            className="primary"
-            onClick={handleBooking}
-            disabled={loading || selectedSeatIds.length === 0}
-          >
-            {loading ? 'Booking...' : `Book ${selectedSeatIds.length || ''} Seat${selectedSeatIds.length === 1 ? '' : 's'}`}
-          </button>
-        </section>
+            <section className="book-form">
+              <h2>Book Seats</h2>
+              <p className="hint">
+                {selectedSeatIds.length === 0
+                  ? 'No seats selected yet.'
+                  : `${selectedSeatIds.length} seat(s) selected.`}
+              </p>
+              <label>Passenger Name (optional)</label>
+              <input
+                value={passengerName}
+                onChange={(e) => setPassengerName(e.target.value)}
+                placeholder={currentUser.email}
+              />
+              <button
+                type="button"
+                className="primary"
+                onClick={handleBooking}
+                disabled={loading || selectedSeatIds.length === 0}
+              >
+                {loading ? 'Booking...' : `Book ${selectedSeatIds.length || ''} Seat${selectedSeatIds.length === 1 ? '' : 's'}`}
+              </button>
+            </section>
+
+            <section className="my-bookings">
+              <h2>My Bookings</h2>
+              {myBookingsLoading && <p className="hint">Loading your bookings...</p>}
+              {!myBookingsLoading && myBookings.length === 0 && (
+                <p className="hint">You have no bookings yet.</p>
+              )}
+              {myBookings.length > 0 && (
+                <table className="bookings-table">
+                  <thead>
+                    <tr>
+                      <th>Seat</th>
+                      <th>Route</th>
+                      <th>Date</th>
+                      <th>Fare</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {myBookings.map((booking) => (
+                      <tr key={booking.id}>
+                        <td>{booking.seat.seatNumber}</td>
+                        <td>{booking.origin.code} → {booking.destination.code}</td>
+                        <td>{booking.travelDate}</td>
+                        <td>{booking.fare}</td>
+                        <td>
+                          <button type="button" className="secondary" onClick={() => handleCancelBooking(booking)}>
+                            Cancel
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
+          </>
+        )}
       </div>
     </div>
   );

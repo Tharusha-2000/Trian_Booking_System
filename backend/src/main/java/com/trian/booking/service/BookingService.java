@@ -4,11 +4,13 @@ import com.trian.booking.dto.BookingRequestDTO;
 import com.trian.booking.dto.SeatAvailabilityResponseDTO;
 import com.trian.booking.dto.TrainScheduleResponseDTO;
 import com.trian.booking.model.Coach;
+import com.trian.booking.model.Role;
 import com.trian.booking.model.Seat;
 import com.trian.booking.model.SeatBooking;
 import com.trian.booking.model.Station;
 import com.trian.booking.model.Train;
 import com.trian.booking.model.TrainStop;
+import com.trian.booking.model.User;
 import com.trian.booking.repository.CoachRepository;
 import com.trian.booking.repository.SeatBookingRepository;
 import com.trian.booking.repository.SeatRepository;
@@ -17,6 +19,7 @@ import com.trian.booking.repository.TrainRepository;
 import com.trian.booking.repository.TrainStopRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -137,7 +140,7 @@ public class BookingService {
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public List<SeatBooking> createBooking(BookingRequestDTO request) {
+    public List<SeatBooking> createBooking(BookingRequestDTO request, User currentUser) {
         List<Long> seatIds = request.getSeatIds();
         if (seatIds == null || seatIds.isEmpty()) {
             throw new IllegalArgumentException("At least one seat must be selected");
@@ -179,10 +182,33 @@ public class BookingService {
             }
 
             long fare = calculateFare(seat.getCoach(), origin.getOrdinal(), destination.getOrdinal());
-            bookings.add(new SeatBooking(seat, origin, destination, travelDate, request.getPassengerName(), fare));
+            String passengerName = (request.getPassengerName() == null || request.getPassengerName().isBlank())
+                    ? currentUser.getEmail()
+                    : request.getPassengerName();
+            bookings.add(new SeatBooking(seat, origin, destination, currentUser, travelDate, passengerName, fare));
         }
 
         return seatBookingRepository.saveAll(bookings);
+    }
+
+    public List<SeatBooking> getMyBookings(User currentUser) {
+        return seatBookingRepository.findByUserOrderByTravelDateDesc(currentUser);
+    }
+
+    @Transactional
+    public void cancelBooking(Long bookingId, User currentUser) {
+        SeatBooking booking = seatBookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
+
+        boolean isOwner = booking.getUser() != null && booking.getUser().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("You do not have permission to cancel this booking");
+        }
+
+        // Deleting the row is what actually frees the seat: findOverlappingBookings
+        // no longer sees it, so the segment becomes bookable again for that date.
+        seatBookingRepository.delete(booking);
     }
 
     private long calculateFare(Coach coach, int originOrdinal, int destinationOrdinal) {

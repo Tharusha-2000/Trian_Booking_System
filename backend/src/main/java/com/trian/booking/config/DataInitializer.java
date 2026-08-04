@@ -1,15 +1,24 @@
 package com.trian.booking.config;
 
 import com.trian.booking.model.Coach;
+import com.trian.booking.model.Role;
 import com.trian.booking.model.Seat;
 import com.trian.booking.model.Station;
+import com.trian.booking.model.Train;
+import com.trian.booking.model.TrainStop;
+import com.trian.booking.model.User;
 import com.trian.booking.repository.CoachRepository;
 import com.trian.booking.repository.SeatRepository;
 import com.trian.booking.repository.StationRepository;
+import com.trian.booking.repository.TrainRepository;
+import com.trian.booking.repository.TrainStopRepository;
+import com.trian.booking.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Configuration
@@ -19,8 +28,16 @@ public class DataInitializer {
     public CommandLineRunner initData(
             StationRepository stationRepository,
             CoachRepository coachRepository,
-            SeatRepository seatRepository) {
+            SeatRepository seatRepository,
+            TrainRepository trainRepository,
+            TrainStopRepository trainStopRepository,
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder) {
         return args -> {
+            if (userRepository.count() == 0) {
+                userRepository.save(new User("admin@trian.com", passwordEncoder.encode("admin123"), Role.ADMIN));
+            }
+
             if (stationRepository.count() == 0) {
                 stationRepository.saveAll(List.of(
                         new Station("CF", "Colombo Fort", 0),
@@ -28,6 +45,17 @@ public class DataInitializer {
                         new Station("KDY", "Kandy", 2),
                         new Station("NP", "Nuwara Eliya (Nanu Oya)", 3),
                         new Station("BDL", "Badulla", 4)
+                ));
+            }
+
+            if (trainRepository.count() == 0) {
+                Train train = trainRepository.save(new Train("Udarata Kumari"));
+                trainStopRepository.saveAll(List.of(
+                        new TrainStop(train, stationRepository.findByCode("CF").orElseThrow(), LocalTime.of(12, 45)),
+                        new TrainStop(train, stationRepository.findByCode("GAM").orElseThrow(), LocalTime.of(13, 45)),
+                        new TrainStop(train, stationRepository.findByCode("KDY").orElseThrow(), LocalTime.of(15, 45)),
+                        new TrainStop(train, stationRepository.findByCode("NP").orElseThrow(), LocalTime.of(16, 45)),
+                        new TrainStop(train, stationRepository.findByCode("BDL").orElseThrow(), LocalTime.of(18, 0))
                 ));
             }
 

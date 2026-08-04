@@ -35,8 +35,122 @@
 .route-form,
 .book-form,
 .availability,
-.train-details {
+.train-details,
+.my-bookings,
+.auth-panel {
   margin-top: 1.75rem;
+}
+
+.auth-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 1.25rem 1.5rem;
+  background: #fbfcff;
+}
+
+.auth-panel.standalone {
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 2rem;
+}
+
+.auth-panel.standalone .auth-fields {
+  grid-template-columns: 1fr;
+}
+
+.auth-panel.standalone .auth-tabs {
+  justify-content: center;
+}
+
+.auth-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.role-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tab {
+  background: none;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: #475569;
+}
+
+.tab.active {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: white;
+}
+
+.auth-fields {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+}
+
+button.secondary {
+  background: white;
+  color: #4f46e5;
+  border: 1px solid #4f46e5;
+  padding: 0.6rem 1.1rem;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button.secondary:hover {
+  background: #eef2ff;
+}
+
+.bookings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.bookings-table th,
+.bookings-table td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.bookings-table th {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.bookings-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 640px) {
+  .auth-fields {
+    grid-template-columns: 1fr;
+  }
 }
 
 .train-details {

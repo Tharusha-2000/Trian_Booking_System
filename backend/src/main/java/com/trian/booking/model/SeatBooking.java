@@ -29,6 +29,10 @@ public class SeatBooking {
     @JoinColumn(name = "destination_station_id")
     private Station destination;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
     private LocalDate travelDate;
     private String passengerName;
     private long fare;
@@ -36,10 +40,11 @@ public class SeatBooking {
     public SeatBooking() {
     }
 
-    public SeatBooking(Seat seat, Station origin, Station destination, LocalDate travelDate, String passengerName, long fare) {
+    public SeatBooking(Seat seat, Station origin, Station destination, User user, LocalDate travelDate, String passengerName, long fare) {
         this.seat = seat;
         this.origin = origin;
         this.destination = destination;
+        this.user = user;
         this.travelDate = travelDate;
         this.passengerName = passengerName;
         this.fare = fare;
@@ -71,6 +76,14 @@ public class SeatBooking {
 
     public void setDestination(Station destination) {
         this.destination = destination;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public LocalDate getTravelDate() {

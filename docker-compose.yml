@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://ep-wild-firefly-ayoq10sn-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channelBinding=require}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-neondb_owner}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-npg_ncqyUMOI10lH}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      JWT_SECRET: ${JWT_SECRET:-lQNsjUq90WYzhvsJd7a+9x0nWlZNBkfTap2sv8Ts158=}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+    ports:
+      - 8080:8080
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    ports:
+      - 5173:5173
+    environment:
+      VITE_API_BASE: http://localhost:8080/api
+    depends_on:
+      - backend

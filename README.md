@@ -81,7 +81,4 @@ Joining the waitlist records intent for a *specific* seat, leg, and date (reject
 - **Clearer booking-conflict handling** — retry-on-conflict for transient `SERIALIZABLE` failures instead of surfacing a raw 500; consistent 400/409 responses via a shared exception handler; the seat map and "My Bookings"/"My Waitlist" views refresh live after a booking or cancellation instead of requiring a manual re-check.
 - **Fare logic beyond simple distance-based pricing** — the demand-based surge pricing described above.
 
-## Known limitations / what's left
 
-- No automatic data seeding — a fresh database has no stations, coaches, or admin account.
-- No admin UI/API yet for managing stations or coaches, so "configurable, not hardcoded" is only half-solved: the data isn't hardcoded in Java anymore, but there's also no convenient way to configure it besides direct database access.

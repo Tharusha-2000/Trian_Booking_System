@@ -15,6 +15,10 @@ docker compose up --build
 - Backend: `http://localhost:8080`
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 
+admin credentials
+ email - admin@trian.com
+ password - admin123
+
 Both Dockerfiles use multi-stage builds (a Maven image compiles the jar, then it's copied into a slim JRE runtime image), so no local Maven/Node install or wrapper script is required — Docker handles the whole toolchain.
 
 The backend's JWT signing key defaults to a clearly-labeled dev-only placeholder so the stack runs with zero setup. For any real deployment, copy `.env.example` to `.env` and set a real `JWT_SECRET` there — `.env` is gitignored and `docker-compose.yml` reads it automatically.
